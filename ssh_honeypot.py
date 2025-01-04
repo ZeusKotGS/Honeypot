@@ -22,7 +22,7 @@ creds_logger = logging.getLogger('FunnelLogger') #capture passwords, IPs
 creds_logger.setLevel(logging.INFO)
 creds_handler = RotatingFileHandler('cmd_audits.log', maxBytes=2000, backupCount=5) #set logging file
 creds_handler.setFormatter(logging_format)
-creds_logger.addHandler(funnel_handler) #add logging file
+creds_logger.addHandler(creds_handler) #add logging file
 
 # Emulated Shell
 
@@ -158,4 +158,4 @@ def honeypot(address, port, username, password): #main function
         except Exception as error:
             print(error)
 
-honeypot('127.0.0.1', 2223, 'username', 'password')
+honeypot('127.0.0.1', 2223, username=None, password=None)
