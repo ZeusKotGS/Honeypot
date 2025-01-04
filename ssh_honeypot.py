@@ -8,7 +8,8 @@ import threading
 logging_format = logging.Formatter('%(message)s') #format
 SSH_BANNER = "SSH-2.0-MySSHServer_1.0"
 
-host_key = 'server.key'
+#host_key = 'server.key'
+host_key = paramiko.RSAKey(filename='server.key')
 
 #Loggers & Logging Files
 funnel_logger = logging.getLogger('FunnelLogger') #capture passwords, IPs
@@ -41,20 +42,26 @@ def emulated_shell(channel, client_ip): #fake shell
             if command.strip() == b'exit':
                 response = b'\n Goodbye!\n'
                 channel.close()
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
             elif command.strip() == b'pwd':
                 response = b'\n\\' + b'\\usr\\local' + b'\r\n'
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
             elif command.strip() == b'whoami':
                 response = b'\n' + b'corpuser1' + b'\r\n'
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
             elif command.strip() == b'ls':
                 response = b'\n' + b'jumpbox1.conf' + b'\r\n'
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
             elif command.strip() == b'cat jumpbox1.conf':
                 response = b'\n' + b"Go to deeboodah.com." + b'\r\n'
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
             else:
                 response = b'\n' + bytes(command.strip()) + b'\r\n'
+                creds_logger.info(f'Command {command.strip()}' + 'executed by ' + f'{client_ip}')
 
-        channel.send(response)
-        channel.send(b'corporate-jumpbox2$ ')
-        command = b""
+            channel.send(response)
+            channel.send(b'corporate-jumpbox2$ ')
+            command = b""
 
 # SSH Server + Sockets
 
@@ -74,6 +81,8 @@ class Server(paramiko.ServerInterface):
         return "password"
     
     def check_auth_password(self, username, password):
+        funnel_logger.info(f'Client {self.client_ip} attempted connection with ' + f'username: {username}, ' + f'password: {password}')
+        creds_logger.info(f'{self.client_ip}, {username}, {password}')
         if self.input_username is not None and self.input_password is not None:
             if self.input_username and password == self.input_password:
                 return paramiko.AUTH_SUCCESSFUL
@@ -99,7 +108,7 @@ def client_handle(client, addr, username, password):
 
     try:
     
-        transport = paramiko.Transport() #handling low-level ssh sessions
+        transport = paramiko.Transport(client) #handling low-level ssh sessions
         transport.local_version = SSH_BANNER
         server = Server(client_ip=client_ip, input_username=username, input_password=password)
 
