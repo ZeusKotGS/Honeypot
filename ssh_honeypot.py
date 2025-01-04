@@ -61,6 +61,7 @@ def emulated_shell(channel, client_ip): #fake shell
 class Server(paramiko.ServerInterface): 
 
     def __init__(self, client_ip, input_username=None, input_password=None):
+        self.event = threading.Event()
         self.client_ip = client_ip
         self.input_username = input_username
         self.input_password = input_password
@@ -74,10 +75,12 @@ class Server(paramiko.ServerInterface):
     
     def check_auth_password(self, username, password):
         if self.input_username is not None and self.input_password is not None:
-            if username == 'username' and password == 'password':
+            if self.input_username and password == self.input_password:
                 return paramiko.AUTH_SUCCESSFUL
             else:
                 return paramiko.AUTH_FAILED
+        else:
+            paramiko.AUTH_SUCCESSFUL
     
     def check_channel_shell_request(self, channel):
         self.event.set()
@@ -140,6 +143,10 @@ def honeypot(address, port, username, password): #main function
     while True:
         try:
             client, addr = socks.accept()
+            ssh_honeypot_thread = threading.Thread(target=client_handle, args=(client, addr, username, password))
+            ssh_honeypot_thread.start()
 
         except Exception as error:
             print(error)
+
+honeypot('127.0.0.1', 2223, 'username', 'password')
